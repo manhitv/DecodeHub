@@ -31,12 +31,12 @@ the reference implementation of our method **RAD**.
 generation in a **single forward pass, without retraining, no auxiliary model, no
 model-specific states**. From as few as **10 annotated examples** it builds a compact
 *grounding space* of `(context embedding, next-token logits)` pairs; at each decoding step
-it retrieves similar contexts and fuses their logits into the model's own. Per step `t`
-(last `M` tokens as context):
+it retrieves contexts above a cosine-similarity threshold and fuses their
+similarity-weighted logits into the model's own (`l_final = l_base + alpha * l_agg`).
 
-1. **Retrieve** — `e_t = E(x_{t-M:t-1})`, keep contexts with `cos(e_t, e_i) > tau`.
-2. **Aggregate** — `l_agg = sum_i (s_i / sum_j s_j) * l_i` (empty set → zero vector).
-3. **Integrate** — `l_final = l_base + alpha * l_agg`, then greedy `argmax`.
+<div align="center">
+<img src="assets/rad_overview.png" alt="RAD overview" width="780">
+</div>
 
 📜 **Paper:** [*Retrieval-Augmented Decoding for Improving Truthfulness in Open-ended Generation*](https://arxiv.org/pdf/2508.02184).
 
