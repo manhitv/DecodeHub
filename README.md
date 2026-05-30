@@ -32,10 +32,10 @@ generation in a **single forward pass, without retraining, no auxiliary model, n
 model-specific states**. From as few as **10 annotated examples** it builds a compact
 *grounding space* of `(context embedding, next-token logits)` pairs; at each decoding step
 it retrieves contexts above a cosine-similarity threshold and fuses their
-similarity-weighted logits into the model's own (`l_final = l_base + alpha * l_agg`).
+similarity-weighted logits into the model's own.
 
 <div align="center">
-<img src="assets/rad_overview.png" alt="RAD overview" width="780">
+<img src="assets/rad_overview.png" alt="RAD overview" width="100%">
 </div>
 
 📜 **Paper:** [*Retrieval-Augmented Decoding for Improving Truthfulness in Open-ended Generation*](https://arxiv.org/pdf/2508.02184).
