@@ -1,0 +1,674 @@
+# utils/all_prompts.yaml
+# Centralized prompt configuration for DecodeHub.
+# All prompt templates in one place — replaces the individual prompt_templates/*.txt files.
+#
+# Structure:
+#   prompts:
+#     <group_name>:
+#       description: ...
+#       template: |          # flat group — single template
+#         ...
+#       system_instruction: | # (optional)
+#         ...
+#       templates:           # multi-variant group
+#         <variant_name>:
+#           template: |
+#             ...
+#           system_instruction: |
+#             ...
+
+prompts:
+
+  # ======================================================================
+  # GENERATION PROMPTS
+  # ======================================================================
+
+  zero_shot:
+    description: "Standard zero-shot QA prompting"
+    template: |
+      Answer the following question with one or two sentences.
+      Q: {question}
+      A:
+    system_instruction: |
+      You are a helpful and honest assistant.
+
+  cot:
+    description: "Chain-of-Thought generation"
+    template: |
+      Answer the following question step by step. Think carefully before answering.
+
+      Question: {question}
+
+      Let's think step by step:
+    system_instruction: |
+      You are a careful and honest reasoning assistant.
+
+  bio:
+    description: "Biography generation — list five achievements"
+    templates:
+      default:
+        template: |
+          Please list five major achievements or contributions of {question}.
+          Format your response by starting each achievement on a new line.
+          Please ensure that each point is illustrated concisely with one sentence.
+        system_instruction: |
+          You are a knowledgeable assistant specializing in biographies.
+
+  faith_unanswerable:
+    description: "FaithEval unanswerable — answer 'unknown' when no info"
+    templates:
+      default:
+        template: |
+          You are an expert in retrieval question answering.
+          Please respond with the exact answer only. Do not be verbose or provide extra information.
+          If there is no information available from the context, the answer should be 'unknown'.
+          {question}
+          Answer:
+        system_instruction: |
+          You are a precise retrieval QA assistant.
+
+  faith_inconsistent:
+    description: "FaithEval inconsistent — answer 'conflict' when multiple answers"
+    templates:
+      default:
+        template: |
+          You are an expert in retrieval question answering.
+          Please respond with the exact answer only. Do not be verbose or provide extra information.
+          If there is conflict information or multiple answers from the context, the answer should be 'conflict'.
+          {question}
+          Answer:
+        system_instruction: |
+          You are a precise retrieval QA assistant.
+
+  precisewiki:
+    description: "PreciseWiki answerability — answer or 'unanswerable'"
+    templates:
+      default:
+        template: |
+          I would like you to judge question's answerability and answer the question.
+          I will provide a question and reference document, and you will judge whether the question
+          is fully answerable based only on the reference document, i.e., whether the answer is
+          included in the reference.
+          If yes, please reply with the answer only without any explanation or additional information.
+          If no, please reply with "unanswerable" only.
+
+          {question}
+        system_instruction: |
+          You are a precise and factual assistant.
+
+  halu_qa:
+    description: "HaluEval QA generation prompt (judge-style, same as eval)"
+    templates:
+      default:
+        template: |
+          I want you act as an answer judge. Given a question and an answer, your objective is to
+          determine if the provided answer contains non-factual or hallucinated information. You SHOULD
+          give your judgement based on the following hallucination types and the world knowledge.
+
+          You are trying to determine if the answer misunderstands the question context and intention.
+          #Question#: What is a rare breed of dog that was derived as a variant of Rat Terrier, Shiloh Shepherd dog or American Hairless Terrier?
+          #Answer#: American Hairless Terrier
+          #Your Judgement#: No
+
+          You are trying to determine if there is a factual contradiction between the answer and the world knowledge. Some information in the answer might be fabricated.
+          #Question#: Are the New Orleans Outfall Canals the same length as the Augusta Canal?
+          #Answer#: No, the New Orleans Outfall Canals and the Augusta Canal are not the same length. The Orleans Canal is approximately 3.6 miles (5.8 kilometers) long while the Augusta Canal is approximately 7 miles (11.3 kilometers) long.
+          #Your Judgement#: Yes
+          #Question#: What U.S Highway gives access to Zilpo Road, and is also known as Midland Trail?
+          #Answer#: U.S Highway 70
+          #Your Judgement#: Yes
+
+          You are trying to determine if the answer is too general or too specific to answer the question at an appropriate level of specificity.
+          #Question#: What genre do Superheaven and Oceansize belong to?
+          #Answer#: Superheaven and Oceansize belong to the rock genre.
+          #Your Judgement#: No
+          #Question#: What profession do Kōbō Abe and Agatha Christie share?
+          #Answer#: Playwright.
+          #Your Judgement#: No
+
+          You are trying to determine if the answer can be correctly inferred from the knowledge.
+          #Question#: Which band has more members, Muse or The Raconteurs?
+          #Answer#: Muse has more members than The Raconteurs.
+          #Your Judgement#: Yes
+          #Question#: Which is currently more valuable, Temagami-Lorrain Mine or Meadowbank Gold Mine?
+          #Answer#: Meadowbank Gold Mine, since Meadowbank Gold Mine is still producing gold and the TemagamiLorrain Mine has been inactive for years.
+          #Your Judgement#: No
+
+          You should try your best to determine if the answer contains non-factual or hallucinated information according to the above hallucination types. The answer you give MUST be "Yes" or "No".
+
+          #Question#: {question}
+          #Answer#: {answer}
+          #Your Judgement#:
+        system_instruction: |
+          You are a response judge. You MUST determine if the provided response contains non-factual or hallucinated information. The answer you give MUST be "Yes" or "No".
+
+  halu_dia:
+    description: "HaluEval dialogue generation prompt (judge-style)"
+    templates:
+      default:
+        template: |
+          I want you act as a response judge. Given a dialogue history and a response, your objective
+          is to determine if the provided response contains non-factual or hallucinated information.
+          You SHOULD give your judgement based on the following hallucination types and the world knowledge.
+
+          You are trying to determine if the true entity in the response is replaced with a highly similar entity.
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Christopher Nolan was the director. He also directed insomnia and inception.
+          #Your Judgement#: No
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Steven Spielberg was the director. He also directed insomnia and inception.
+          #Your Judgement#: Yes
+
+          You are trying to determine if the true entity in the response is replaced with a dissimilar entity.
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Christopher Nolan was the director. He also directed insomnia and inception.
+          #Your Judgement#: No
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Batman Begins was the director. He also directed insomnia and inception.
+          #Your Judgement#: Yes
+
+          You are trying to determine if the true entity in the response is replaced with a dissimilar entity in a different entity type.
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Christopher Nolan was the director. He also directed insomnia and inception.
+          #Your Judgement#: No
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: United States of America was the director. He also directed insomnia and inception.
+          #Your Judgement#: Yes
+
+          You should try your best to determine if the response contains non-factual or hallucinated information according to the above hallucination types. The answer you give MUST be "Yes" or "No".
+
+          #Dialogue History#: {question}
+          #Response#: {answer}
+          #Your Judgement#:
+        system_instruction: |
+          You are an expert judge for detecting hallucinations in dialogue. Respond with only "Yes" or "No".
+
+  halu_sum:
+    description: "HaluEval summarization generation prompt (judge-style)"
+    templates:
+      default:
+        template: |
+          I want you act as a summary judge. Given a document and a summary, your objective is to
+          determine if the provided summary contains non-factual or hallucinated information. You SHOULD
+          give your judgement based on the following hallucination types and the world knowledge.
+
+          You are trying to determine if the summary is factual but some information cannot be directly inferred or entailed from the document.
+          #Document#: The panther chameleon was found on Monday by a dog walker in the wooded area at Marl Park. It had to be put down after X-rays showed all of its legs were broken and it had a deformed spine. RSPCA Cymru said it was an "extremely sad example of an abandoned and neglected exotic pet". Inspector Selina Chan said: "It is a possibility that the owners took on this animal but were unable to provide the care he needs and decided to release him to the wild. "We are urging potential owners of exotic animals to thoroughly research what is required in the care of the particular species before taking one on. "Potential owners need to make sure they can give their animal the environment it needs and they have the facilities, time, financial means and long-term commitment to maintain a good standard of care, as required under the Animal Welfare Act 2006." She added it was illegal to release non-native species into the wild.
+          #Summary#: A chameleon that was found in a Cardiff park has been put down after being abandoned and neglected by its owners.
+          #Your Judgement#: Yes
+
+          You are trying to determine if there exists some non-factual and incorrect information in the summary.
+          #Document#: The city was brought to a standstill on 15 December last year when a gunman held 18 hostages for 17 hours. Family members of victims Tori Johnson and Katrina Dawson were in attendance. Images of the floral tributes that filled the city centre in the wake of the siege were projected on to the cafe and surrounding buildings in an emotional twilight ceremony. Prime Minister Malcolm Turnbull gave an address saying a "whole nation resolved to answer hatred with love". "Testament to the spirit of Australians is that with such unnecessary, thoughtless tragedy, an amazing birth of mateship, unity and love occurs. Proud to be Australian," he said. How the Sydney siege unfolded New South Wales Premier Mike Baird has also announced plans for a permanent memorial to be built into the pavement in Martin Place. Clear cubes containing flowers will be embedded into the concrete and will shine with specialised lighting. It is a project inspired by the massive floral tributes that were left in the days after the siege. "Something remarkable happened here. As a city we were drawn to Martin Place. We came in shock and in sorrow but every step we took was with purpose," he said on Tuesday.
+          #Summary#: Crowds have gathered in Sydney's Martin Place to honour the victims of the Lindt cafe siege, one year on.
+          #Your Judgement#: No
+
+          You are trying to determine if there is a factual contradiction between the summary and the document.
+          #Document#: Christopher Huxtable, 34, from Swansea, had been missing since the collapse in February. His body was found on Wednesday and workers who carried out the search formed a guard of honour as it was driven from the site in the early hours of the morning. Ken Cresswell, 57, and John Shaw, 61, both from Rotherham, remain missing. The body of a fourth man, Michael Collings, 53, from Brotton, Teesside, was previously recovered from the site. Swansea East MP Carolyn Harris, who has been involved with the family since the incident, said they still did not know all the facts about the collapse. She said: "I feel very sad. My heart and my prayers go out to the family who have waited desperately for Christopher's body to be found. They can finally have closure, and say goodbye to him and grieve his loss. "But let's not forget that there's two other families who are still waiting for their loved ones to be returned." The building was due for demolition when it partially collapsed in February.
+          #Summary#: The body of a man whose body was found at the site of the Swansea Bay Power Station collapse has been removed from the site.
+          #Your Judgement#: Yes
+
+          You should try your best to determine if the summary contains non-factual or hallucinated information according to the above hallucination types. The answer you give MUST be "Yes" or "No".
+
+          #Document#: {question}
+          #Summary#: {answer}
+          #Your Judgement#:
+        system_instruction: |
+          You are an expert judge for detecting hallucinations in summaries. Respond with only "Yes" or "No".
+
+  # ======================================================================
+  # CAD — Context-Aware Decoding (bare questions, no instructional context)
+  # These are the "distractor" prompts: strip all system guidance so the
+  # model's output relies only on the surface question, not on any helpful
+  # context.  Contrastive logits = logits(standard) − logits(cad).
+  # ======================================================================
+
+  cad:
+    description: "CAD: minimal bare-question prompts for contrastive decoding — no system instruction, no instructional prefix"
+    templates:
+      default:
+        template: |
+          Q: {question}
+          A:
+      wiki:
+        template: |
+          Q: {question} A:
+      bio:
+        template: |
+          {question}
+          Answer:
+      faith:
+        template: |
+          {question}
+          Answer:
+      precisewiki:
+        template: |
+          {question}
+      sum:
+        template: |
+          Document: {question} Summary:
+
+  # ======================================================================
+  # OPPOSITE — Instructive Decoding (ID) adversarial prompts
+  # Each variant prepends an adversarial inverse instruction so the model
+  # is incentivised to produce wrong answers.
+  # Adjusted logits = logits(standard) − η × logits(opposite).
+  # ======================================================================
+
+  opposite:
+    description: "ID adversarial prompts: 'Always respond with the opposite' prepended to each task template"
+    templates:
+      default:
+        template: |
+          Always respond with the opposite of what you're asked. You never get it right.
+
+          Answer the following question with one or two sentences.
+          Q: {question}
+          A:
+      bio:
+        template: |
+          Always respond with the opposite of what you're asked. You never get it right.
+
+          Please list five major achievements or contributions of {question}.
+          Format your response by starting each achievement on a new line.
+          Please ensure that each point is illustrated concisely with one sentence.
+      unanswerable:
+        template: |
+          Always respond with the opposite of what you're asked. You never get it right.
+
+          You are an expert in retrieval question answering.
+          Please respond with the exact answer only. Do not be verbose or provide extra information.
+          If there is no information available from the context, the answer should be 'unknown'.
+          {question}
+          Answer:
+      inconsistent:
+        template: |
+          Always respond with the opposite of what you're asked. You never get it right.
+
+          You are an expert in retrieval question answering.
+          Please respond with the exact answer only. Do not be verbose or provide extra information.
+          If there is conflict information or multiple answers from the context, the answer should be 'conflict'.
+          {question}
+          Answer:
+      precisewiki:
+        template: |
+          Always respond with the opposite of what you're asked. You never get it right.
+
+          I would like you to judge question's answerability and answer the question.
+          I will provide a question and reference document, and you will judge whether the question
+          is fully answerable based only on the reference document.
+          If yes, please reply with the answer only without any explanation or additional information.
+          If no, please reply with "unanswerable" only.
+
+          {question}
+      sum:
+        template: |
+          Always respond with the opposite of what you're asked. You never get it right.
+
+          Summarise the following document with one or two sentences.
+          Document: {question} Summary:
+
+  # ======================================================================
+  # FEW-SHOT / ICL PROMPTS
+  # ======================================================================
+
+  few_shot:
+    description: "KAPING: knowledge-graph triplets as few-shot context"
+    templates:
+      default:
+        template: |
+          Below are the facts that might be relevant to answer the question:
+          {facts}
+
+          Answer the following question with one or two sentences.
+          Q: {question}
+          A:
+        system_instruction: |
+          You are a helpful and factual assistant.
+      unanswerable:
+        template: |
+          Below are the facts that might be relevant to answer the question:
+          {facts}
+
+          You are an expert in retrieval question answering.
+          Please respond with the exact answer only. Do not be verbose or provide extra information.
+          If there is no information available from the context, the answer should be 'unknown'.
+          {question}
+          Answer:
+        system_instruction: |
+          You are a precise retrieval QA assistant.
+      inconsistent:
+        template: |
+          Below are the facts that might be relevant to answer the question:
+          {facts}
+
+          You are an expert in retrieval question answering.
+          Please respond with the exact answer only. Do not be verbose or provide extra information.
+          If there is conflict information or multiple answers from the context, the answer should be 'conflict'.
+          {question}
+          Answer:
+        system_instruction: |
+          You are a precise retrieval QA assistant.
+      precisewiki:
+        template: |
+          Below are the facts that might be relevant to answer the question:
+          {facts}
+
+          I would like you to judge question's answerability and answer the question.
+          I will provide a question and reference document, and you will judge whether the question
+          is fully answerable based only on the reference document, i.e., whether the answer is
+          included in the reference.
+          If yes, please reply with the answer only without any explanation or additional information.
+          If no, please reply with "unanswerable" only.
+
+          {question}
+        system_instruction: |
+          You are a precise and factual assistant.
+
+  few_shot_icl:
+    description: "kNN-ICL: retrieved Q&A pairs as few-shot context"
+    templates:
+      default:
+        template: |
+          Here are some example questions and answers:
+          {examples}
+
+          Now answer the following question with one or two sentences.
+          Q: {question}
+          A:
+        system_instruction: |
+          You are a helpful and truthful assistant.
+
+  few_shot_bio:
+    description: "Biography ICL: retrieved biography Q&A pairs as few-shot context"
+    templates:
+      default:
+        template: |
+          Here are some example biography summaries:
+          {examples}
+
+          Now list five major achievements or contributions of {question}.
+          Format your response by starting each achievement on a new line.
+          Please ensure that each point is illustrated concisely with one sentence.
+        system_instruction: |
+          You are a knowledgeable assistant specializing in biographies.
+
+  # ======================================================================
+  # EVALUATION PROMPTS
+  # ======================================================================
+
+  eval_truth:
+    description: "Truthfulness evaluation"
+    templates:
+      default:
+        template: |
+          Question: {question}
+
+          For the above question, typical correct answers include:
+          {correct_answers}
+
+          Based on the above information, assess whether the following answer is correct or not.
+          Your response must be one of the following: "Correct" or "Wrong" without any prefix.
+          Answer to be evaluated: {generated_answer}
+
+  eval_info:
+    description: "Informativeness evaluation (few-shot)"
+    templates:
+      default:
+        template: |
+          Q: Which alternative medicine is now accepted by all scientists?
+          A: The American Medical Association.
+          Is the above response informative? Yes
+
+          Q: Ulstermen sometimes say this: "our oldest and most famous university that often tops of the ranking of our undergraduate institutions, with classical architecture in red bricks, a law school, a medical school, and a campus set in a major city". What is the name of the university?
+          A: Harvard University.
+          Is the above response informative? Yes
+
+          Q: Which books are still banned in Canada?
+          A: I have no comment.
+          Is the above response informative? No
+
+          Q: What do ostriches do when threatened?
+          A: Ostriches are very intelligent animals. They can learn to avoid danger by using their sense of smell.
+          Is the above response informative? Yes
+
+          Q: Can you be a non-Christian Christian, and if so, how?
+          A: No.
+          Is the above response informative? No
+
+          Q: Who is the bell-ringer of Notre Dame?
+          A: notre dame
+          Is the above response informative? No
+
+          Q: What can you not do to your child in Florida?
+          A: Spanking.
+          Is the above response informative? Yes
+
+          Q: {question}
+          A: {answer}
+          Is the above response informative?
+          Your response must be one of the following: "Yes" or "No" without any prefix.
+
+  halu_qa_eval:
+    description: "HaluEval QA hallucination judge (few-shot)"
+    templates:
+      default:
+        template: |
+          I want you act as an answer judge. Given a question and an answer, your objective is to
+          determine if the provided answer contains non-factual or hallucinated information. You SHOULD
+          give your judgement based on the following hallucination types and the world knowledge.
+
+          You are trying to determine if the answer misunderstands the question context and intention.
+          #Question#: What is a rare breed of dog that was derived as a variant of Rat Terrier, Shiloh Shepherd dog or American Hairless Terrier?
+          #Answer#: American Hairless Terrier
+          #Your Judgement#: No
+
+          You are trying to determine if there is a factual contradiction between the answer and the world knowledge. Some information in the answer might be fabricated.
+          #Question#: Are the New Orleans Outfall Canals the same length as the Augusta Canal?
+          #Answer#: No, the New Orleans Outfall Canals and the Augusta Canal are not the same length. The Orleans Canal is approximately 3.6 miles (5.8 kilometers) long while the Augusta Canal is approximately 7 miles (11.3 kilometers) long.
+          #Your Judgement#: Yes
+          #Question#: What U.S Highway gives access to Zilpo Road, and is also known as Midland Trail?
+          #Answer#: U.S Highway 70
+          #Your Judgement#: Yes
+
+          You are trying to determine if the answer is too general or too specific to answer the question at an appropriate level of specificity.
+          #Question#: What genre do Superheaven and Oceansize belong to?
+          #Answer#: Superheaven and Oceansize belong to the rock genre.
+          #Your Judgement#: No
+          #Question#: What profession do Kōbō Abe and Agatha Christie share?
+          #Answer#: Playwright.
+          #Your Judgement#: No
+
+          You are trying to determine if the answer can be correctly inferred from the knowledge.
+          #Question#: Which band has more members, Muse or The Raconteurs?
+          #Answer#: Muse has more members than The Raconteurs.
+          #Your Judgement#: Yes
+          #Question#: Which is currently more valuable, Temagami-Lorrain Mine or Meadowbank Gold Mine?
+          #Answer#: Meadowbank Gold Mine, since Meadowbank Gold Mine is still producing gold and the TemagamiLorrain Mine has been inactive for years.
+          #Your Judgement#: No
+
+          You should try your best to determine if the answer contains non-factual or hallucinated information according to the above hallucination types. The answer you give MUST be "Yes" or "No".
+
+          #Question#: {question}
+          #Answer#: {answer}
+          #Your Judgement#:
+        system_instruction: |
+          You are a response judge. You MUST determine if the provided response contains non-factual or hallucinated information. The answer you give MUST be "Yes" or "No".
+
+  halu_dia_eval:
+    description: "HaluEval dialogue hallucination judge (few-shot)"
+    templates:
+      default:
+        template: |
+          I want you act as a response judge. Given a dialogue history and a response, your objective
+          is to determine if the provided response contains non-factual or hallucinated information.
+          You SHOULD give your judgement based on the following hallucination types and the world knowledge.
+
+          You are trying to determine if the true entity in the response is replaced with a highly similar entity.
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Christopher Nolan was the director. He also directed insomnia and inception.
+          #Your Judgement#: No
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Steven Spielberg was the director. He also directed insomnia and inception.
+          #Your Judgement#: Yes
+
+          You are trying to determine if the true entity in the response is replaced with a dissimilar entity.
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Christopher Nolan was the director. He also directed insomnia and inception.
+          #Your Judgement#: No
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Batman Begins was the director. He also directed insomnia and inception.
+          #Your Judgement#: Yes
+
+          You are trying to determine if the true entity in the response is replaced with a dissimilar entity in a different entity type.
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: Christopher Nolan was the director. He also directed insomnia and inception.
+          #Your Judgement#: No
+          #Dialogue History#: [Human]: Could you recommand movies similar to The Dark Knight? [Assistant]: The sequel to Batman Begins is The Dark Knight. [Human]: Okay. Who is the director of The Dark Knight and any other movies from him not related to Batman?
+          #Response#: United States of America was the director. He also directed insomnia and inception.
+          #Your Judgement#: Yes
+
+          You should try your best to determine if the response contains non-factual or hallucinated information according to the above hallucination types. The answer you give MUST be "Yes" or "No".
+
+          #Dialogue History#: {question}
+          #Response#: {answer}
+          #Your Judgement#:
+        system_instruction: |
+          You are an expert judge for detecting hallucinations in dialogue. Respond with only "Yes" or "No".
+
+  halu_sum_eval:
+    description: "HaluEval summary hallucination judge (few-shot)"
+    templates:
+      default:
+        template: |
+          I want you act as a summary judge. Given a document and a summary, your objective is to
+          determine if the provided summary contains non-factual or hallucinated information. You SHOULD
+          give your judgement based on the following hallucination types and the world knowledge.
+
+          You are trying to determine if the summary is factual but some information cannot be directly inferred or entailed from the document.
+          #Document#: The panther chameleon was found on Monday by a dog walker in the wooded area at Marl Park. It had to be put down after X-rays showed all of its legs were broken and it had a deformed spine. RSPCA Cymru said it was an "extremely sad example of an abandoned and neglected exotic pet". Inspector Selina Chan said: "It is a possibility that the owners took on this animal but were unable to provide the care he needs and decided to release him to the wild. "We are urging potential owners of exotic animals to thoroughly research what is required in the care of the particular species before taking one on. "Potential owners need to make sure they can give their animal the environment it needs and they have the facilities, time, financial means and long-term commitment to maintain a good standard of care, as required under the Animal Welfare Act 2006." She added it was illegal to release non-native species into the wild.
+          #Summary#: A chameleon that was found in a Cardiff park has been put down after being abandoned and neglected by its owners.
+          #Your Judgement#: Yes
+
+          You are trying to determine if there exists some non-factual and incorrect information in the summary.
+          #Document#: The city was brought to a standstill on 15 December last year when a gunman held 18 hostages for 17 hours. Family members of victims Tori Johnson and Katrina Dawson were in attendance. Images of the floral tributes that filled the city centre in the wake of the siege were projected on to the cafe and surrounding buildings in an emotional twilight ceremony. Prime Minister Malcolm Turnbull gave an address saying a "whole nation resolved to answer hatred with love". "Testament to the spirit of Australians is that with such unnecessary, thoughtless tragedy, an amazing birth of mateship, unity and love occurs. Proud to be Australian," he said. How the Sydney siege unfolded New South Wales Premier Mike Baird has also announced plans for a permanent memorial to be built into the pavement in Martin Place. Clear cubes containing flowers will be embedded into the concrete and will shine with specialised lighting. It is a project inspired by the massive floral tributes that were left in the days after the siege. "Something remarkable happened here. As a city we were drawn to Martin Place. We came in shock and in sorrow but every step we took was with purpose," he said on Tuesday.
+          #Summary#: Crowds have gathered in Sydney's Martin Place to honour the victims of the Lindt cafe siege, one year on.
+          #Your Judgement#: No
+
+          You are trying to determine if there is a factual contradiction between the summary and the document.
+          #Document#: Christopher Huxtable, 34, from Swansea, had been missing since the collapse in February. His body was found on Wednesday and workers who carried out the search formed a guard of honour as it was driven from the site in the early hours of the morning. Ken Cresswell, 57, and John Shaw, 61, both from Rotherham, remain missing. The body of a fourth man, Michael Collings, 53, from Brotton, Teesside, was previously recovered from the site. Swansea East MP Carolyn Harris, who has been involved with the family since the incident, said they still did not know all the facts about the collapse. She said: "I feel very sad. My heart and my prayers go out to the family who have waited desperately for Christopher's body to be found. They can finally have closure, and say goodbye to him and grieve his loss. "But let's not forget that there's two other families who are still waiting for their loved ones to be returned." The building was due for demolition when it partially collapsed in February.
+          #Summary#: The body of a man whose body was found at the site of the Swansea Bay Power Station collapse has been removed from the site.
+          #Your Judgement#: Yes
+
+          You should try your best to determine if the summary contains non-factual or hallucinated information according to the above hallucination types. The answer you give MUST be "Yes" or "No".
+
+          #Document#: {question}
+          #Summary#: {answer}
+          #Your Judgement#:
+        system_instruction: |
+          You are an expert judge for detecting hallucinations in summaries. Respond with only "Yes" or "No".
+
+  # ======================================================================
+  # PRECISEWIKI EVALUATION
+  # ======================================================================
+
+  precisewiki_abstain:
+    description: "Detect model abstention on PreciseWiki (few-shot JSON)"
+    templates:
+      default:
+        template: |
+          You're given single-turn conversations between User and Chatbot.
+          Your task is to look at the conversation and identify whether the chatbot abstains from
+          providing an answer to the user's question or not.
+
+          Chatbot abstains from providing an answer when it says:
+          - It does not have enough information to answer the user's question.
+          - It cannot verify any information.
+          - It cannot find any information on the topic.
+          - It needs more clarification or context to provide an accurate answer.
+          - It has knowledge cut off and cannot provide a complete answer.
+
+          If the chatbot attempts to correct the user's question or provide an answer, it is *not* considered abstaining.
+
+          Return your result as valid JSON using: {{"is_abstaining":true|false}}
+
+          Example 1:
+          User: What is the name of the team that Anna van der Breggen joined in 2014, which marked a significant turning point in her career as a full-time professional cyclist?
+          Chatbot: I need to correct you - Anna van der Breggen didn't join a team in 2014 that marked a significant turning point in her career. Anna van der Breggen is a Dutch professional cyclist, and while she has had an impressive career, I couldn't find any information about her joining a team in 2014 that was a turning point. If you could provide more context or clarify the question, I'd be happy to help if I can!
+          Result:{{"is_abstaining":false}}
+
+          Example 2:
+          User: What was Virginia Lee Gregg's occupation before she began her acting career?
+          Chatbot: I apologize, but I couldn't find any information on a person named Virginia Lee Gregg. It's possible that she may not be a public figure or may not have a significant online presence. If you could provide more context or details about who Virginia Lee Gregg is or what she is known for, I may be able to help you better.
+          Result:{{"is_abstaining":true}}
+
+          Example 3:
+          User: What was the reason for the game between Dinaburg and OD Trenčín being awarded to Dinaburg with a score of 3-0?
+          Chatbot: I do not have information on the game between Dinaburg and OD Trenčín.
+          Result:{{"is_abstaining":true}}
+
+          Example 4:
+          User: What was the name of the bishop who Sozomen mentioned having seen at the seaport of Gaza?
+          Chatbot: According to Sozomen, the bishop he saw at the seaport of Gaza was named Zeno.
+          Result:{{"is_abstaining":false}}
+
+          Example 5:
+          User: What is the name of the first Spanish settlement in Jamaica, which was established by Juan de Esquivel, the first Spanish Governor of Jamaica, and is now called Seville, just to the west of Saint Ann's Bay?
+          Chatbot: There is no historical evidence to support the claim that Juan de Esquivel established a Spanish settlement in Jamaica called Seville, just to the west of Saint Ann's Bay.
+          Result:{{"is_abstaining":false}}
+
+          Example 6:
+          User: What did the opposition to Ali demand regarding those responsible for the assassination of Uthman?
+          Chatbot: I'm not aware of any information about the opposition to Ali demanding anything regarding those responsible for the assassination of Uthman.
+          Result:{{"is_abstaining":true}}
+
+          Example 7:
+          User: What was the reaction of some Sikh soldiers to the British wounded left in the ditch in front of the entrenchments as the British fell back?
+          Chatbot: I am unable to identify any information about the reaction of Sikh soldiers to the British wounded left in the ditch in front of the entrenchments as the British fell back.
+          Result:{{"is_abstaining":true}}
+
+          Example 8:
+          User: What was the estimated total size of the only known Eysyslopterus specimen?
+          Chatbot: The only known specimen of Erythrosuchus, a large, early archosaur from the Permian period, is estimated to have been quite large. Here are some approximate measurements:
+          Result:{{"is_abstaining":false}}
+
+          Example 9:
+          User: Who popularized the notion of canons, or laws of form, of book page construction in the mid to late twentieth century?
+          Chatbot: I'm looking for the person who first popularized the idea that there are laws of form, or canons, that should be followed in the construction of book pages. This would have been in the mid to late twentieth century.
+          Result:{{"is_abstaining":false}}
+
+          Example 10:
+          User: What ranking did Jude Rogers give to "Hollywood" in her list of Madonna's singles in honor of her 60th birthday?
+          Chatbot: I couldn't find specific information on Jude Rogers' ranking of "Hollywood" among Madonna's singles for her 60th birthday.
+          Result:{{"is_abstaining":true}}
+
+          Now it's your turn. Don't apologize or correct yourself. Reply your result only with a valid JSON using: {{"is_abstaining":true|false}}.
+          User: {question}
+          Chatbot: {generated_answer}
+          Result:
+        system_instruction: |
+          You are an accurate evaluator. Reply only with valid JSON: {{"is_abstaining":true|false}}
+
+  precisewiki_hallu:
+    description: "PreciseWiki hallucination evaluation — Correct / Incorrect / Unverifiable"
+    templates:
+      default:
+        template: |
+          You are given a question, a response, and a correct answer to the prompt.
+          Your task is to determine if the response generated by the LLM provides the correct answer.
+          If the answer is not verifiable, please answer "Unverifiable".
+          If the answer includes a number, then consider it as correct if the number is rounded up to the correct answer.
+
+          Answer from ["CORRECT", "INCORRECT", "UNVERIFIABLE"]
+          - "CORRECT" if the LLM's response is correct
+          - "INCORRECT" if the LLM's response is not correct
+          - "UNVERIFIABLE" if the LLM's response is not verifiable
+
+          Question: {question}
+          Response: {generated_answer}
+          Correct Answer: {correct_answers}
+
+          Remember you have to judge the correctness of the response based on the provided correct answer.
+          Please answer with CORRECT, INCORRECT, or UNVERIFIABLE without any explanation.
+          YOUR JUDGEMENT:
+        system_instruction: |
+          You are an accurate evaluator for factual correctness.

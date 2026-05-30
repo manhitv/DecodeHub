@@ -1,0 +1,35 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# Notebooks
+*.ipynb
+.ipynb_checkpoints
+
+# Local secrets — never commit real API keys
+local/keys.env
+utils/token.py
+
+# Datasets — not shipped; provide locally (see README › Benchmarks)
+data/
+
+# Runtime artifacts
+output/
+results/
+evaluation_results/
+log_output/
+log_error/
+
+# Caches
+.cache
+.pytest_cache/
+.ruff_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+tests/

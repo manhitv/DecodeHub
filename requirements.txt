@@ -1,0 +1,17 @@
+# DecodeHub / RAD dependencies — Python 3.10+
+torch==2.6.0
+transformers==4.56.0
+sentence-transformers==5.1.0
+faiss-gpu==1.7.2            # use faiss-cpu if no GPU is available
+datasets==3.6.0
+numpy==1.26.4
+scipy==1.15.3
+pandas==2.2.2
+jsonlines==4.0.0
+pyyaml==6.0.2
+tqdm==4.67.1
+matplotlib==3.10.3
+rouge-score==0.1.2
+bert-score==0.3.13
+cohere==5.17.0
+google-genai==1.32.0
