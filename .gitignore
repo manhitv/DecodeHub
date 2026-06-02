@@ -33,3 +33,4 @@ log_error/
 env/
 venv/
 tests/
+paper/

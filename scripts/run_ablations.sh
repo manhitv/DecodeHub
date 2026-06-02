@@ -13,7 +13,7 @@ mkdir -p output results evaluation_results
 
 DATA=truthful_qa
 METRIC=factuality
-N_SAMPLES=100
+N_SAMPLES=417            # TruthfulQA test split (paper Section 4.1)
 
 rad () {  # rad <model> <num_train> <configs_json>
   python run.py --base_model "$1" --decoding_method rcd \
@@ -26,6 +26,9 @@ rad () {  # rad <model> <num_train> <configs_json>
 DEFAULT_CFG='{"shaping_mode":"linear","alpha":0.5,"sim_threshold":0.7,"agg_mode":"weighted"}'
 
 echo "=== Block 1: grounding space size N in {10,50,100,200,400} (all models) ==="
+# Isolate this block's eval records in their own dir so the Fig 3 plot only sees
+# the grounding-size sweep (all other blocks share num_train=100).
+export DECODEHUB_RESULTS=results/grounding_size
 for MODEL in qwen2.5-3b qwen2.5-7b mistral2-7b gemma2-9b; do
   for N in 10 50 100 200 400; do
     python -m database.datastore --base_model "$MODEL" --train_data "$DATA" \
@@ -33,6 +36,11 @@ for MODEL in qwen2.5-3b qwen2.5-7b mistral2-7b gemma2-9b; do
     rad "$MODEL" "$N" "[$DEFAULT_CFG]"
   done
 done
+# Fig 3: grounding-size vs T*I, from the eval records written above.
+python analysis.py plot-ablation --result_dir results/grounding_size \
+  --method rcd --eval_data "$DATA" --metric_key metric__t_times_i \
+  --out results/grounding_size.pdf
+unset DECODEHUB_RESULTS
 
 # Remaining blocks use Qwen2.5-7B as the representative model.
 MODEL=qwen2.5-7b
@@ -67,10 +75,12 @@ rad "$MODEL" 100 '[
   {"shaping_mode":"linear","alpha":1.0,"sim_threshold":0.7,"agg_mode":"weighted"}
 ]'
 
-echo "=== Block 5: exact-match retrieval configuration ==="
+echo "=== Block 5: exact-match retrieval configuration (Table 6) ==="
+# exact_match: ""=Default (all contexts), "ignore"=W/o Exact-Match, "only"=Only Exact-Match.
 rad "$MODEL" 100 '[
   {"shaping_mode":"linear","alpha":0.5,"sim_threshold":0.7,"agg_mode":"weighted","exact_match":""},
-  {"shaping_mode":"linear","alpha":0.5,"sim_threshold":0.7,"agg_mode":"weighted","exact_match":"ignore"}
+  {"shaping_mode":"linear","alpha":0.5,"sim_threshold":0.7,"agg_mode":"weighted","exact_match":"ignore"},
+  {"shaping_mode":"linear","alpha":0.5,"sim_threshold":0.7,"agg_mode":"weighted","exact_match":"only"}
 ]'
 
 echo "=== Ablations complete — see evaluation_results/ ==="

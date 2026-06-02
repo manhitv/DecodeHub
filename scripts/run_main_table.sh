@@ -12,13 +12,24 @@ mkdir -p output results evaluation_results
 MODELS=("qwen2.5-3b" "qwen2.5-7b" "mistral2-7b" "gemma2-9b")
 DATASETS=("truthful_qa" "wiki" "alpaca" "halu_dia" "halu_sum")
 NUM_TRAIN=100
-N_SAMPLES=100
 
 # Evaluation metric per dataset.
 get_metric () {
   case "$1" in
     halu_dia|halu_sum) echo halu_rate  ;;
     *)                 echo factuality ;;  # truthful_qa, wiki, alpaca
+  esac
+}
+
+# Evaluation set size per dataset (paper Section 4.1). Loaders cap at this value,
+# so a number at or above the full split simply uses the whole split.
+get_nsamples () {
+  case "$1" in
+    truthful_qa)       echo 417 ;;   # last 417 questions of the test split
+    wiki)              echo 700 ;;   # full WikiQA test split
+    alpaca)            echo 900 ;;   # full AlpacaEval set
+    halu_dia|halu_sum) echo 500 ;;   # 500 samples per HaluEval task
+    *)                 echo 500 ;;
   esac
 }
 
@@ -34,8 +45,9 @@ for model in "${MODELS[@]}"; do
   for data in "${DATASETS[@]}"; do
     METRIC=$(get_metric "$data")
     TAU=$(get_tau "$data")
+    N_SAMPLES=$(get_nsamples "$data")
 
-    echo "########## $model / $data (metric=$METRIC) ##########"
+    echo "########## $model / $data (metric=$METRIC, n=$N_SAMPLES) ##########"
 
     # --- Precompute grounding structures (chunk-8 context + next-token logits) ---
     echo "--- [precompute] grounding space (RAD) + kNN-LM datastore ---"

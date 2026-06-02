@@ -72,6 +72,29 @@ def _compute_step_stats(logits: torch.Tensor, chosen_token: int) -> dict:
     return {"entropy": entropy, "top_prob": float(probs.max()), "token_id": chosen_token}
 
 
+def _compute_rcd_step_stats(
+    base_logit: torch.Tensor, adjusted_logit: torch.Tensor, chosen_token: int
+) -> dict:
+    """Per-step stats for RAD, recording the BASE (pre-fusion) distribution and
+    whether the retrieved term flipped the arg max. Used by the selectivity /
+    'where RAD intervenes' analysis. Keeps the base keys (entropy/top_prob/
+    token_id) of _compute_step_stats so the entropy/ECE tools still work."""
+    base_p = torch.softmax(base_logit.float(), dim=-1)
+    adj_p  = torch.softmax(adjusted_logit.float(), dim=-1)
+    base_entropy = float(-(base_p * torch.log2(base_p + 1e-10)).sum())
+    adj_entropy  = float(-(adj_p * torch.log2(adj_p + 1e-10)).sum())
+    top2 = torch.topk(base_p, 2).values
+    return {
+        "entropy":       adj_entropy,            # final (post-fusion) — back-compat
+        "top_prob":      float(adj_p.max()),
+        "token_id":      chosen_token,
+        "base_entropy":  base_entropy,
+        "base_top_prob": float(base_p.max()),
+        "base_gap":      float(top2[0] - top2[1]),   # top1 - top2 of base
+        "flipped":       int(int(base_logit.argmax()) != int(adjusted_logit.argmax())),
+    }
+
+
 def _load_knn_datastore(
     train_data:       str,
     model_name:       str,
@@ -301,7 +324,9 @@ def rcd_generation(
 
         best_token = torch.argmax(adjusted_logits)
         if collect_stats:
-            step_stats.append(_compute_step_stats(adjusted_logits, int(best_token.item())))
+            step_stats.append(
+                _compute_rcd_step_stats(base_logit, adjusted_logits, int(best_token.item()))
+            )
         generated  = torch.cat([generated, best_token.view(1, 1)], dim=1)
         attention_mask = torch.cat(
             [attention_mask, torch.ones(1, 1, dtype=torch.long, device=device)], dim=1

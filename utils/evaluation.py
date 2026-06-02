@@ -15,9 +15,11 @@ from typing import Optional
 
 import numpy as np
 import torch
-from bert_score import score as bert_score
 from rouge_score import rouge_scorer
-from transformers import AutoModelForSequenceClassification
+# NOTE: `bert_score` is imported lazily inside bertscore_f1() — it is only needed by
+# the `open` eval metric. Importing it at module top-level previously made run.py
+# (which imports this module for load_data_eval) fail under --run_only on any env
+# without bert_score installed.
 
 from utils.config import result_dir
 from utils.data import (
@@ -137,6 +139,7 @@ def _save_results(results: dict, file_name: str) -> None:
 # ---------------------------------------------------------------------------
 
 def eval_hhem(data: list[dict]) -> list[list[float]]:
+    from transformers import AutoModelForSequenceClassification
     model = AutoModelForSequenceClassification.from_pretrained(
         "vectara/hallucination_evaluation_model",
         trust_remote_code=True,
@@ -206,7 +209,9 @@ def _build_messages(
     ]
 
 
-def eval_truthful(data: list[dict], args) -> tuple[float, int]:
+def eval_truthful(
+    data: list[dict], args, collect_per_sample: bool = False
+) -> tuple[float, int, Optional[list[dict]]]:
     messages = _build_messages(data, "eval_truth", lambda s: {
         "question":        s["question"],
         "correct_answers": "\n".join(s["correct_answers"]),
@@ -216,20 +221,27 @@ def eval_truthful(data: list[dict], args) -> tuple[float, int]:
 
     cnt = {"correct": 0, "wrong": 0}
     saved = {}
+    per_sample: list[dict] = [] if collect_per_sample else None
     for i, raw in enumerate(eval_results):
         result = _first_alpha_word(raw.strip().lower())
         if args.save_results:
             saved[i] = {"sample": data[i], "eval_result": result, "eval_type": "truth"}
-        if result.startswith("correct"):
+        is_correct = result.startswith("correct")
+        if is_correct:
             cnt["correct"] += 1
         elif result.startswith("wrong"):
             cnt["wrong"] += 1
+        if collect_per_sample:
+            per_sample.append({
+                "question_index": data[i].get("question_index", i),
+                "is_correct": bool(is_correct),
+            })
 
     if args.save_results:
         _save_results(saved, f"{args.base_model}_{args.decoding_method}_{args.evaluation_type}_{args.data_split}_truth.json")
 
     total = cnt["correct"] + cnt["wrong"]
-    return (cnt["correct"] / total if total else 0.0), total
+    return (cnt["correct"] / total if total else 0.0), total, per_sample
 
 
 def eval_informativeness(data: list[dict], args) -> tuple[float, int]:
@@ -406,6 +418,7 @@ def bertscore_f1(
     ref: str,
     model: str = "microsoft/deberta-xlarge-mnli",
 ) -> float:
+    from bert_score import score as bert_score
     _, _, F1 = bert_score([pred], [ref], model_type=model, lang="en", rescale_with_baseline=True)
     return float(F1[0])
 
@@ -431,19 +444,27 @@ def eval_open(data: list[dict]) -> dict[str, float]:
 def eval_metric(data: list[dict], args, faith_data: Optional[str] = None) -> dict:
     m = args.eval_metric
 
+    collect_ps = getattr(args, "save_per_sample", False)
+
     if m == "factuality":
-        truth_score, _ = eval_truthful(data, args)
+        truth_score, _, truth_ps = eval_truthful(data, args, collect_per_sample=collect_ps)
         info_score, _  = eval_informativeness(data, args)
-        return {
+        out = {
             "t_times_i":   truth_score * info_score,
             "truth_score": truth_score,
             "info_score":  info_score,
             "n_samples":   len(data),
         }
+        if truth_ps is not None:
+            out["_per_sample"] = truth_ps
+        return out
 
     if m == "truth_only":
-        truth_score, valid = eval_truthful(data, args)
-        return {"truth_score": truth_score, "truth_valid": valid, "n_samples": len(data)}
+        truth_score, valid, truth_ps = eval_truthful(data, args, collect_per_sample=collect_ps)
+        out = {"truth_score": truth_score, "truth_valid": valid, "n_samples": len(data)}
+        if truth_ps is not None:
+            out["_per_sample"] = truth_ps
+        return out
 
     if m == "halu_rate":
         rate, valid = eval_halu_rate(data, args)
@@ -564,6 +585,7 @@ def eval_single_file(file_path: str | Path, args) -> dict:
         "decoding_method":  args.decoding_method,
         "eval_metric":      args.eval_metric,
         "evaluation_type":  args.evaluation_type,
+        "exp_tag":          getattr(args, "exp_tag", ""),
         "eval_data_path":   args.eval_data_path,
         "eval_results":     {f"metric__{k}": v for k, v in metric_dict.items()},
         **{

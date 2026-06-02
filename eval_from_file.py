@@ -48,8 +48,12 @@ def main():
     p.add_argument("--decoding_config_json", default="{}",
                    help="JSON string of decoding config (for result metadata).")
     p.add_argument("--save_per_sample", action="store_true",
-                   help="Save per-sample {question_index, is_hallucinated, is_abstaining} "
-                        "to evaluation_results/per_sample/<name>.json (precisewiki only).")
+                   help="Save per-sample labels to evaluation_results/per_sample/<name>.json. "
+                        "For factuality: {question_index, is_correct} (used by the "
+                        "calibration/ECE analysis); for precisewiki: hallucination flags.")
+    p.add_argument("--per_sample_out", default=None,
+                   help="Explicit path for the per-sample JSON (overrides the default "
+                        "evaluation_results/per_sample/ location).")
     args = p.parse_args()
 
     if not args.train_data:
@@ -57,19 +61,22 @@ def main():
 
     args.eval_data_path = args.file
     args.decoding_config = json.loads(args.decoding_config_json)
+    # Defaults expected by the evaluator but not exposed as CLI flags here.
+    args.save_results = False
+    args.exp_tag = ""
 
-    # Resolve per-sample output path
-    if args.save_per_sample:
+    # Resolve per-sample output path (honour an explicit --per_sample_out).
+    if args.save_per_sample and not args.per_sample_out:
         per_sample_dir = os.path.join(eval_result_dir, "per_sample")
         per_sample_fn = (
             f"{args.decoding_method}__{args.eval_data}__{args.base_model}"
             f"__{args.data_split}__{args.max_sample_num}__per_sample.json"
         )
         args.per_sample_out = os.path.join(per_sample_dir, per_sample_fn)
-    else:
+    elif not args.save_per_sample:
         args.per_sample_out = None
 
-    # Cohere / Gemini client
+    # Evaluation back-end.
     if args.evaluation_type == "cohere":
         import cohere
         args.cohere_client = cohere.ClientV2(api_key=api_key.cohere_api_key)

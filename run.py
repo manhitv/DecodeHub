@@ -183,6 +183,9 @@ def run_single(
     suffix: str = "",
 ) -> Optional[dict]:
     """Run inference for one config, optionally evaluate, return eval result."""
+    if getattr(args, "exp_tag", ""):
+        suffix = f"{suffix}_exp_{args.exp_tag}" if suffix else f"exp_{args.exp_tag}"
+
     out_path = _output_path(
         output_dir   = output_dir,
         eval_data    = args.eval_data,
@@ -335,7 +338,19 @@ def get_args() -> argparse.Namespace:
                         "Saves responses + a _timing.json with latency stats.")
     p.add_argument("--save_decoding_stats", action="store_true",
                    help="Save per-token entropy/prob stats to a _stats.pkl alongside "
-                        "the response JSON. Used for diversity/entropy analysis.")
+                        "the response JSON. Used for diversity/entropy/calibration analysis.")
+    p.add_argument("--save_per_sample", action="store_true",
+                   help="Collect per-sample correctness labels during evaluation. "
+                        "Combine with --per_sample_out to dump them (used by the "
+                        "calibration/ECE analysis).")
+    p.add_argument("--per_sample_out", default=None,
+                   help="Path to write per-sample evaluation labels as JSON. "
+                        "Requires --save_per_sample.")
+    p.add_argument("--exp_tag", default="",
+                   help="Optional tag appended to output/stats filenames so runs that "
+                        "differ only in a top-level arg (e.g. --embed_model_name) do not "
+                        "overwrite each other. Used by the embedding-sensitivity and "
+                        "calibration experiments.")
 
     # Misc
     p.add_argument("--batch_size",       type=int, default=16)
