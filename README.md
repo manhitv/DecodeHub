@@ -6,7 +6,7 @@
 
 <div align="center">
 
-[![Venue](https://img.shields.io/badge/ECML%20PKDD-2026-blue)]()
+[![Venue](https://img.shields.io/badge/ECML%20PKDD-2026-blue?logo=springer&logoColor=white)](https://link.springer.com/chapter/10.1007/978-3-032-37673-2_2)
 [![arXiv](https://img.shields.io/badge/arXiv-2508.02184-b31b1b)](https://arxiv.org/pdf/2508.02184)
 [![PyTorch](https://img.shields.io/badge/Powered_by-PyTorch-ee4c2c)](https://pytorch.org/)
 [![FAISS](https://img.shields.io/badge/Retrieval-FAISS-blue)](https://github.com/facebookresearch/faiss)
@@ -15,25 +15,23 @@
 
 </div>
 
-**RAD — Retrieval-Augmented Decoding** improves the truthfulness of LLM open-ended
-generation in a **single forward pass, without retraining, no auxiliary model, and no
-model-specific states**. From as few as **10 annotated examples** it builds a compact
-*grounding space* of `(context embedding, next-token logits)` pairs; at each decoding step
-it retrieves contexts above a cosine-similarity threshold and fuses their
-similarity-weighted logits into the model's own.
+**RAD — Retrieval-Augmented Decoding** improves the truthfulness of LLM open-ended generation in a **single forward pass, without retraining, no auxiliary model, and no model-specific states**. From as few as **10 annotated examples** it builds a compact
+*grounding space* of `(context embedding, next-token logits)` pairs; at each decoding step it retrieves contexts above a cosine-similarity threshold and fuses their similarity-weighted logits into the model's own.
 
 <div align="center">
 <img src="assets/rad_overview.png" alt="RAD overview" width="100%">
 </div>
 
-📜 **Paper:** [*Retrieval-Augmented Decoding for Improving Truthfulness in Open-ended Generation*](https://arxiv.org/pdf/2508.02184)
+📜 **Paper:** [*Retrieval-Augmented Decoding for Improving Truthfulness in Open-Ended Generation*](https://link.springer.com/chapter/10.1007/978-3-032-37673-2_2) (ECML PKDD 2026)
 
 > ```bibtex
-> @article{nguyen2026rad,
->  title   = {Retrieval-Augmented Decoding for Improving Truthfulness in Open-ended Generation},
->  author  = {Nguyen, Manh and Gupta, Sunil and Le, Hung},
->  journal = {arXiv preprint arXiv:2508.02184},
->  year    = {2026}
+> @inproceedings{nguyen2026rad,
+>  title     = {Retrieval-Augmented Decoding for Improving Truthfulness in Open-Ended Generation},
+>  author    = {Nguyen, Manh and Gupta, Sunil and Le, Hung},
+>  booktitle = {Machine Learning and Knowledge Discovery in Databases. Research Track},
+>  year      = {2027},
+>  publisher = {Springer Nature Switzerland},
+>  pages     = {19--36}
 > }
 > ```
 
